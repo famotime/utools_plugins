@@ -5,8 +5,6 @@
 ## 📦 插件列表
 
 ### 1. 常亮 (Always On)
-**版本**: 0.0.5  
-**作者**: QuincyZou
 
 **功能简介**: 无须修改系统设置，即可保持显示与系统唤醒，有效阻止黑屏、屏保和系统睡眠。
 
@@ -62,8 +60,8 @@
 
 ### 方法二：手动安装
 1. 下载对应插件文件夹
-2. 将插件文件夹放入 uTools 插件目录
-3. 重启 uTools
+2. 使用utools开发者工具读取项目文件，并构建离线安装包
+3. 使用uTools安装.upxs离线安装包
 
 ## 📁 项目结构
 
@@ -110,25 +108,3 @@ utools_plugins/
 - 数据库操作
 - 等等...
 
-## 🤝 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
-
-### 贡献步骤
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
-## 🙏 致谢
-
-感谢 uTools 团队提供的优秀平台和开发工具。
-
----
-
-**注意**: 部分插件可能需要管理员权限才能正常工作，请确保以管理员身份运行 uTools。
