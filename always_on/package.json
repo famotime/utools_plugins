@@ -1,0 +1,12 @@
+{
+  "name": "always_on",
+  "version": "1.0.0",
+  "description": "定期自动移动鼠标，防止电脑黑屏、启动屏保或进入休眠状态。",
+  "main": "preload.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

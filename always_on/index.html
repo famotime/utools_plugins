@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>常亮 - uTools 插件</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f8f9fa;
+      color: #333;
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 24px;
+    }
+    h1 {
+      font-size: 1.5em;
+      margin-bottom: 0.5em;
+      color: #2c3e50;
+      text-align: center;
+    }
+    .desc {
+      color: #666;
+      margin-bottom: 1.5em;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .status-section {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .status {
+      font-size: 1.1em;
+      font-weight: bold;
+      padding: 8px 16px;
+      border-radius: 20px;
+      display: inline-block;
+      margin: 10px 0;
+    }
+    .status.running {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status.stopped {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .controls {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .btn {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 0 5px;
+    }
+    .btn:hover {
+      background: #0056b3;
+    }
+    .btn.stop {
+      background: #dc3545;
+    }
+    .btn.stop:hover {
+      background: #c82333;
+    }
+    .tip {
+      color: #888;
+      font-size: 0.9em;
+      margin-top: 20px;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .settings {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    .settings h3 {
+      font-size: 1em;
+      margin-bottom: 10px;
+      color: #555;
+    }
+    .setting-item {
+      margin: 8px 0;
+      color: #666;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>常亮</h1>
+    <div class="desc">保持显示器常亮，防止黑屏、屏保或休眠</div>
+
+    <div class="status-section">
+      <div>当前状态：</div>
+      <div id="status" class="status stopped">已停止</div>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn" class="btn" onclick="startKeepAlive()">启动</button>
+      <button id="stopBtn" class="btn stop" onclick="stopKeepAlive()">停止</button>
+    </div>
+
+    <div id="testResult" style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em; display: none;">
+    </div>
+  </div>
+
+  <script>
+    // 更新状态显示
+    function updateStatus() {
+      try {
+        const isRunning = window.getStatus ? window.getStatus() : false;
+        const statusEl = document.getElementById('status');
+
+        if (isRunning) {
+          statusEl.textContent = '运行中';
+          statusEl.className = 'status running';
+        } else {
+          statusEl.textContent = '已停止';
+          statusEl.className = 'status stopped';
+        }
+
+        console.log('状态更新:', isRunning ? '运行中' : '已停止');
+        return isRunning;
+      } catch (error) {
+        console.error('更新状态失败:', error);
+        const statusEl = document.getElementById('status');
+        statusEl.textContent = '状态未知';
+        statusEl.className = 'status stopped';
+        return false;
+      }
+    }
+
+    // 显示启动中状态
+    function showStartingStatus() {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = '启动中...';
+      statusEl.className = 'status running';
+    }
+
+    // 显示停止中状态
+    function showStoppingStatus() {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = '停止中...';
+      statusEl.className = 'status stopped';
+    }
+
+    // 启动
+    function startKeepAlive() {
+      try {
+        console.log('用户点击启动按钮');
+        showStartingStatus();
+
+        if (window.start) {
+          window.start();
+
+          // 使用更可靠的状态检查机制
+          let checkAttempts = 0;
+          const maxCheckAttempts = 5;
+
+          const checkStatus = () => {
+            checkAttempts++;
+            console.log(`状态检查尝试 ${checkAttempts}/${maxCheckAttempts}`);
+
+            const isRunning = updateStatus();
+
+            if (isRunning) {
+              console.log('启动成功确认');
+              return;
+            }
+
+            if (checkAttempts < maxCheckAttempts) {
+              // 继续检查，逐渐增加间隔
+              const delay = checkAttempts * 1000; // 1s, 2s, 3s, 4s
+              setTimeout(checkStatus, delay);
+            } else {
+              console.log('启动状态检查完成，最终状态检查');
+              updateStatus();
+            }
+          };
+
+          // 首次检查延迟2秒，给进程足够启动时间
+          setTimeout(checkStatus, 2000);
+        } else {
+          console.error('window.start 方法不可用');
+          updateStatus();
+        }
+      } catch (error) {
+        console.error('启动失败:', error);
+        updateStatus();
+      }
+    }
+
+    // 停止
+    function stopKeepAlive() {
+      try {
+        console.log('用户点击停止按钮');
+        showStoppingStatus();
+
+        if (window.stop) {
+          window.stop();
+          // 停止操作通常比较快，但也增加一些延迟
+          setTimeout(() => {
+            updateStatus();
+          }, 300);
+        } else {
+          console.error('window.stop 方法不可用');
+          updateStatus();
+        }
+      } catch (error) {
+        console.error('停止失败:', error);
+        updateStatus();
+      }
+    }
+
+
+    // 将updateStatus暴露到全局，供preload.js调用
+    window.updateStatus = updateStatus;
+
+    // 页面加载时更新状态
+    window.onload = function() {
+      console.log('页面加载完成，开始检查状态');
+      // 延迟一下确保 preload 脚本加载完成
+      setTimeout(() => {
+        updateStatus();
+        // 设置定期状态检查，每5秒检查一次
+        setInterval(updateStatus, 5000);
+      }, 500);
+    };
+  </script>
+</body>
+</html>

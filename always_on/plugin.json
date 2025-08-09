@@ -1,0 +1,18 @@
+{
+  "pluginName": "常亮",
+  "description": "屏幕常亮，防止电脑黑屏/屏保/休眠",
+  "main": "index.html",
+  "preload": "preload.js",
+  "version": "0.0.5",
+  "author": "QuincyZou",
+  "homepage": "",
+  "logo": "logo.png",
+  "features": [
+    {
+      "code": "always_on",
+      "explain": "屏幕常亮",
+      "cmds": ["常亮", "alwayson", "cl"],
+      "mode": "none"
+    }
+  ]
+}
