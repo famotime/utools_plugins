@@ -58,6 +58,43 @@
       background: #e9ecef;
     }
 
+    .canvas-help-overlay {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #555;
+      line-height: 1.8;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .canvas-info-overlay {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+      pointer-events: none;
+      min-width: 200px;
+    }
+
+    .canvas-info-overlay strong {
+      color: #333;
+      display: block;
+      margin-bottom: 6px;
+    }
+
     .canvas-wrapper {
       position: relative;
       display: inline-block;
@@ -83,7 +120,7 @@
       background: rgba(0, 123, 255, 0.9);
       color: white;
       padding: 4px 8px;
-      font-size: 12px;
+      font-size: 14px;
       border-radius: 3px;
       white-space: nowrap;
       pointer-events: none;
@@ -244,6 +281,32 @@
 
   <div class="main-container">
     <div class="canvas-container" id="canvasContainer">
+      <!-- Help overlay at top-left -->
+      <div class="canvas-help-overlay">
+        • 滚轮缩放图片；• 右键拖动移动视图；• 左键拖动选择区域；
+      </div>
+
+      <!-- Info overlay at bottom-left -->
+      <div class="canvas-info-overlay" id="imageInfo">
+        <!-- <strong>图片信息</strong> -->
+        <div class="info-item">
+          <span><strong>尺寸:</strong></span>
+          <span id="imageDimensions">-</span>
+        <!-- </div> -->
+        <!-- <div class="info-item"> -->
+          <span><strong>&nbsp;&nbsp;&nbsp;&nbsp;选区高度:</strong></span>
+          <span id="selectionHeight">-</span>
+        <!-- </div> -->
+        <!-- <div class="info-item"> -->
+          <span><strong>&nbsp;&nbsp;&nbsp;&nbsp;处理后高度:</strong></span>
+          <span id="resultHeight">-</span>
+        <!-- </div> -->
+        <!-- <div class="info-item"> -->
+          <span><strong>&nbsp;&nbsp;&nbsp;&nbsp;缩放:</strong></span>
+          <span id="zoomLevel">100%</span>
+        </div>
+      </div>
+
       <div id="placeholder" class="placeholder">
         <div class="placeholder-icon">🖼️</div>
         <div>从剪贴板粘贴图片或重新唤起插件</div>
@@ -259,7 +322,7 @@
       <div class="control-section">
         <h3>编辑操作</h3>
         <button id="stitchBtn" class="btn btn-danger" disabled>
-          ✂️ 删除选区并拼接
+          ✂️ 删除选区 <span class="kbd">Delete</span>
         </button>
         <div class="help-text">
           在图片上拖拽选择要删除的区域
@@ -304,31 +367,6 @@
         <button id="resetViewBtn" class="btn btn-light">
           🔍 重置视图 <span class="kbd">R</span>
         </button>
-        <div class="help-text">
-          • 滚轮缩放图片<br>
-          • 右键拖动移动视图<br>
-          • 左键拖动选择区域
-        </div>
-      </div>
-
-      <div class="info-box" id="imageInfo">
-        <strong>图片信息</strong>
-        <div class="info-item">
-          <span>尺寸:</span>
-          <span id="imageDimensions">-</span>
-        </div>
-        <div class="info-item">
-          <span>选区高度:</span>
-          <span id="selectionHeight">-</span>
-        </div>
-        <div class="info-item">
-          <span>处理后高度:</span>
-          <span id="resultHeight">-</span>
-        </div>
-        <div class="info-item">
-          <span>缩放:</span>
-          <span id="zoomLevel">100%</span>
-        </div>
       </div>
 
       <div class="help-text">
@@ -413,7 +451,9 @@
     }
 
     // ==================== Image Loading ====================
-    function loadImageFromDataURL(dataURL) {
+    function loadImageFromDataURL(dataURL, options = {}) {
+      const { clearHistoryOnLoad = true, resetViewOnLoad = true } = options;
+
       const img = new Image();
       img.onload = () => {
         originalImage = img;
@@ -425,17 +465,22 @@
         document.getElementById('placeholder').style.display = 'none';
         document.getElementById('canvasWrapper').style.display = 'inline-block';
 
-        // Reset view (zoom and pan)
-        resetView();
+        // Reset view (zoom and pan) - optional for undo
+        if (resetViewOnLoad) {
+          resetView();
+        }
 
         // Update UI
         updateImageInfo();
         enableButtons();
         clearSelection();
-        clearHistory();
 
-        // Save initial state
-        saveToHistory();
+        // Only clear history for new images, not when undoing
+        if (clearHistoryOnLoad) {
+          clearHistory();
+          // Save initial state only for new images
+          saveToHistory();
+        }
 
         updateStatus('图片已加载');
       };
@@ -738,7 +783,11 @@
       const previousState = history[history.length - 1];
 
       if (previousState) {
-        loadImageFromDataURL(previousState);
+        // Don't clear history or reset view when undoing
+        loadImageFromDataURL(previousState, {
+          clearHistoryOnLoad: false,
+          resetViewOnLoad: false
+        });
         updateStatus('已撤销');
       }
 
@@ -887,7 +936,11 @@
 
       if (history.length > 0) {
         const originalState = history[0];
-        loadImageFromDataURL(originalState);
+        // Reset to original but don't clear history or reset view
+        loadImageFromDataURL(originalState, {
+          clearHistoryOnLoad: false,
+          resetViewOnLoad: false
+        });
         updateStatus('已重置到原始图片');
       }
     }
