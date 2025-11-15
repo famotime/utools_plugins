@@ -1,0 +1,32 @@
+{
+  "pluginName": "弥隙缩图",
+  "description": "图片编辑工具：删除图片中的横向内容区域，自动拼接上下部分",
+  "main": "index.html",
+  "preload": "preload.js",
+  "version": "1.0.0",
+  "author": "QuincyZou",
+  "homepage": "",
+  "logo": "logo.png",
+  "features": [
+    {
+      "code": "seamless_crop",
+      "explain": "图片弥隙缩图编辑",
+      "cmds": [
+        "弥隙缩图",
+        "缩图",
+        "seamless",
+        "crop",
+        "myst",
+        "st",
+        {
+          "type": "img",
+          "label": "弥隙缩图"
+        }
+      ]
+    }
+  ],
+  "pluginSetting": {
+    "single": true,
+    "height": 700
+  }
+}

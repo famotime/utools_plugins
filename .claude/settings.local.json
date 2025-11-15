@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(powershell:*)",
+      "Bash(dir /b \"D:\\MyCodingProjects\\utools_plugins\\seamless_crop\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

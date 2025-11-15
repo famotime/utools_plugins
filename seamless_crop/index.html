@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>弥隙缩图 - Seamless Crop</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f5f5;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: #fff;
+      padding: 12px 20px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .status-info {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .canvas-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow: auto;
+      background: #e9ecef;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      display: inline-block;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      background: #fff;
+    }
+
+    #canvas {
+      display: block;
+      cursor: crosshair;
+    }
+
+    .selection-overlay {
+      position: absolute;
+      border: 2px dashed #007bff;
+      background: rgba(0, 123, 255, 0.1);
+      pointer-events: none;
+      display: none;
+    }
+
+    .selection-label {
+      position: absolute;
+      background: rgba(0, 123, 255, 0.9);
+      color: white;
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 3px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .control-panel {
+      width: 250px;
+      background: #fff;
+      border-left: 1px solid #e0e0e0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .control-section {
+      margin-bottom: 12px;
+    }
+
+    .control-section h3 {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #0056b3;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #c82333;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #545b62;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #218838;
+    }
+
+    .btn-light {
+      background: #f8f9fa;
+      color: #333;
+      border: 1px solid #dee2e6;
+    }
+
+    .btn-light:hover:not(:disabled) {
+      background: #e2e6ea;
+    }
+
+    .info-box {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .info-box strong {
+      color: #333;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+
+    .help-text {
+      font-size: 12px;
+      color: #999;
+      line-height: 1.5;
+      margin-top: 4px;
+      padding: 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+
+    .placeholder {
+      text-align: center;
+      color: #999;
+      font-size: 16px;
+      padding: 40px;
+    }
+
+    .placeholder-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.3;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      background: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 11px;
+      margin: 0 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>弥隙缩图 - Seamless Crop</h1>
+    <div class="status-info" id="statusInfo">等待图片...</div>
+  </div>
+
+  <div class="main-container">
+    <div class="canvas-container" id="canvasContainer">
+      <div id="placeholder" class="placeholder">
+        <div class="placeholder-icon">🖼️</div>
+        <div>从剪贴板粘贴图片或重新唤起插件</div>
+      </div>
+      <div class="canvas-wrapper" id="canvasWrapper" style="display: none;">
+        <canvas id="canvas"></canvas>
+        <div class="selection-overlay" id="selectionOverlay"></div>
+        <div class="selection-label" id="selectionLabel" style="display: none;"></div>
+      </div>
+    </div>
+
+    <div class="control-panel">
+      <div class="control-section">
+        <h3>编辑操作</h3>
+        <button id="stitchBtn" class="btn btn-danger" disabled>
+          ✂️ 删除选区并拼接
+        </button>
+        <div class="help-text">
+          在图片上拖拽选择要删除的区域
+        </div>
+      </div>
+
+      <div class="control-section">
+        <h3>历史记录</h3>
+        <button id="undoBtn" class="btn btn-secondary" disabled>
+          ↶ 撤销 <span class="kbd">Ctrl+Z</span>
+        </button>
+        <button id="resetBtn" class="btn btn-light" disabled>
+          🔄 重置
+        </button>
+      </div>
+
+      <div class="control-section">
+        <h3>导出</h3>
+        <button id="saveBtn" class="btn btn-success" disabled>
+          💾 保存图片 <span class="kbd">Ctrl+S</span>
+        </button>
+        <button id="copyBtn" class="btn btn-primary" disabled>
+          📋 复制到剪贴板 <span class="kbd">Ctrl+C</span>
+        </button>
+      </div>
+
+      <div class="control-section">
+        <h3>加载图片</h3>
+        <button id="openBtn" class="btn btn-primary">
+          📁 打开本地图片 <span class="kbd">Ctrl+O</span>
+        </button>
+        <button id="pasteBtn" class="btn btn-primary">
+          📋 从剪贴板粘贴 <span class="kbd">Ctrl+V</span>
+        </button>
+        <div class="help-text">
+          可以打开本地文件或从剪贴板粘贴新图片
+        </div>
+      </div>
+
+      <div class="control-section">
+        <h3>视图控制</h3>
+        <button id="resetViewBtn" class="btn btn-light">
+          🔍 重置视图 <span class="kbd">R</span>
+        </button>
+        <div class="help-text">
+          • 滚轮缩放图片<br>
+          • 右键拖动移动视图<br>
+          • 左键拖动选择区域
+        </div>
+      </div>
+
+      <div class="info-box" id="imageInfo">
+        <strong>图片信息</strong>
+        <div class="info-item">
+          <span>尺寸:</span>
+          <span id="imageDimensions">-</span>
+        </div>
+        <div class="info-item">
+          <span>选区高度:</span>
+          <span id="selectionHeight">-</span>
+        </div>
+        <div class="info-item">
+          <span>处理后高度:</span>
+          <span id="resultHeight">-</span>
+        </div>
+        <div class="info-item">
+          <span>缩放:</span>
+          <span id="zoomLevel">100%</span>
+        </div>
+      </div>
+
+      <div class="help-text">
+        <strong style="font-size: 13px; color: #333;">快捷键:</strong><br>
+        <span class="kbd">Ctrl+O</span> 打开图片<br>
+        <span class="kbd">Ctrl+V</span> 粘贴图片<br>
+        <span class="kbd">Ctrl+Z</span> 撤销<br>
+        <span class="kbd">Ctrl+S</span> 保存<br>
+        <span class="kbd">Ctrl+C</span> 复制<br>
+        <span class="kbd">R</span> 重置视图<br>
+        <span class="kbd">Delete</span> 删除选区<br>
+        <span class="kbd">Esc</span> 清除选区
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== Global State ====================
+    let canvas = null;
+    let ctx = null;
+    let originalImage = null;
+    let currentImageData = null;
+    let history = []; // Undo history stack
+    const MAX_HISTORY = 10;
+
+    // Selection state
+    let isSelecting = false;
+    let selectionStart = { x: 0, y: 0 };
+    let selectionEnd = { x: 0, y: 0 };
+    let hasSelection = false;
+
+    // Zoom and pan state
+    let scale = 1.0;
+    let offsetX = 0;
+    let offsetY = 0;
+    const MIN_SCALE = 0.1;
+    const MAX_SCALE = 10;
+    const SCALE_STEP = 0.1;
+
+    // Pan state (right mouse button)
+    let isPanning = false;
+    let panStart = { x: 0, y: 0 };
+
+    // ==================== Initialization ====================
+    window.onload = () => {
+      canvas = document.getElementById('canvas');
+      ctx = canvas.getContext('2d');
+      initializeEventListeners();
+
+      // Listen for plugin entry
+      if (typeof utools !== 'undefined') {
+        utools.onPluginEnter(({ type, payload }) => {
+          if (type === 'img' && payload) {
+            loadImageFromDataURL(payload);
+          }
+        });
+      }
+    };
+
+    // ==================== Event Listeners ====================
+    function initializeEventListeners() {
+      // Canvas mouse events
+      canvas.addEventListener('mousedown', handleMouseDown);
+      canvas.addEventListener('mousemove', handleMouseMove);
+      canvas.addEventListener('mouseup', handleMouseUp);
+      canvas.addEventListener('mouseleave', handleMouseLeave);
+      canvas.addEventListener('wheel', handleWheel, { passive: false });
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault()); // Prevent context menu
+
+      // Button events
+      document.getElementById('stitchBtn').addEventListener('click', removeAndStitch);
+      document.getElementById('undoBtn').addEventListener('click', undo);
+      document.getElementById('saveBtn').addEventListener('click', saveImage);
+      document.getElementById('copyBtn').addEventListener('click', copyToClipboard);
+      document.getElementById('resetBtn').addEventListener('click', resetImage);
+      document.getElementById('openBtn').addEventListener('click', handleOpenImage);
+      document.getElementById('pasteBtn').addEventListener('click', handlePasteImage);
+      document.getElementById('resetViewBtn').addEventListener('click', resetView);
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', handleKeyboard);
+    }
+
+    // ==================== Image Loading ====================
+    function loadImageFromDataURL(dataURL) {
+      const img = new Image();
+      img.onload = () => {
+        originalImage = img;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        // Show canvas, hide placeholder
+        document.getElementById('placeholder').style.display = 'none';
+        document.getElementById('canvasWrapper').style.display = 'inline-block';
+
+        // Reset view (zoom and pan)
+        resetView();
+
+        // Update UI
+        updateImageInfo();
+        enableButtons();
+        clearSelection();
+        clearHistory();
+
+        // Save initial state
+        saveToHistory();
+
+        updateStatus('图片已加载');
+      };
+      img.onerror = () => {
+        updateStatus('图片加载失败');
+        if (typeof utools !== 'undefined') {
+          utools.showNotification('图片加载失败');
+        }
+      };
+      img.src = dataURL;
+    }
+
+    // ==================== Mouse Selection and Pan ====================
+    function handleMouseDown(e) {
+      if (!canvas.width) return;
+
+      // Right button (button === 2): Pan
+      if (e.button === 2) {
+        isPanning = true;
+        panStart = {
+          x: e.clientX - offsetX,
+          y: e.clientY - offsetY
+        };
+        canvas.style.cursor = 'grabbing';
+        return;
+      }
+
+      // Left button (button === 0): Select
+      if (e.button === 0) {
+        const rect = canvas.getBoundingClientRect();
+
+        // Convert screen coordinates to canvas coordinates
+        // Since we removed CSS max-width/height, only transform scale affects the size
+        const canvasX = (e.clientX - rect.left) / scale;
+        const canvasY = (e.clientY - rect.top) / scale;
+
+        selectionStart = {
+          x: canvasX,
+          y: canvasY
+        };
+
+        isSelecting = true;
+        hasSelection = false;
+        hideSelectionOverlay();
+      }
+    }
+
+    function handleMouseMove(e) {
+      // Handle panning with right mouse button
+      if (isPanning) {
+        offsetX = e.clientX - panStart.x;
+        offsetY = e.clientY - panStart.y;
+        applyTransform();
+        return;
+      }
+
+      // Handle selection with left mouse button
+      if (isSelecting) {
+        const rect = canvas.getBoundingClientRect();
+
+        // Convert screen coordinates to canvas coordinates
+        const canvasX = (e.clientX - rect.left) / scale;
+        const canvasY = (e.clientY - rect.top) / scale;
+
+        selectionEnd = {
+          x: canvasX,
+          y: canvasY
+        };
+
+        showSelectionOverlay();
+      }
+    }
+
+    function handleMouseUp(e) {
+      // Handle pan end
+      if (isPanning && e.button === 2) {
+        isPanning = false;
+        canvas.style.cursor = 'crosshair';
+        return;
+      }
+
+      // Handle selection end
+      if (isSelecting && e.button === 0) {
+        isSelecting = false;
+
+        const rect = canvas.getBoundingClientRect();
+
+        // Convert screen coordinates to canvas coordinates
+        const canvasX = (e.clientX - rect.left) / scale;
+        const canvasY = (e.clientY - rect.top) / scale;
+
+        selectionEnd = {
+          x: canvasX,
+          y: canvasY
+        };
+
+        // Validate selection
+        const minHeight = 5;
+        const height = Math.abs(selectionEnd.y - selectionStart.y);
+
+        if (height >= minHeight) {
+          hasSelection = true;
+          showSelectionOverlay();
+          document.getElementById('stitchBtn').disabled = false;
+          updateImageInfo();
+        } else {
+          clearSelection();
+        }
+      }
+    }
+
+    function handleMouseLeave(e) {
+      if (isSelecting) {
+        handleMouseUp(e);
+      }
+      if (isPanning) {
+        isPanning = false;
+        canvas.style.cursor = 'crosshair';
+      }
+    }
+
+    // ==================== Zoom Control ====================
+    function handleWheel(e) {
+      e.preventDefault();
+
+      if (!canvas.width) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Calculate zoom direction
+      const delta = e.deltaY > 0 ? -SCALE_STEP : SCALE_STEP;
+      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale + delta));
+
+      if (newScale !== scale) {
+        // Zoom towards mouse position
+        const scaleFactor = newScale / scale;
+
+        offsetX = mouseX - (mouseX - offsetX) * scaleFactor;
+        offsetY = mouseY - (mouseY - offsetY) * scaleFactor;
+
+        scale = newScale;
+
+        applyTransform();
+        updateZoomDisplay();
+      }
+    }
+
+    function resetView() {
+      // Calculate optimal initial scale to fit the canvas in viewport
+      const container = document.getElementById('canvasContainer');
+      const containerRect = container.getBoundingClientRect();
+
+      // Available space (with some padding)
+      const maxWidth = containerRect.width - 40;
+      const maxHeight = containerRect.height - 40;
+
+      // Calculate scale to fit
+      const scaleToFitWidth = maxWidth / canvas.width;
+      const scaleToFitHeight = maxHeight / canvas.height;
+      const scaleToFit = Math.min(scaleToFitWidth, scaleToFitHeight, 1.0); // Don't scale up
+
+      scale = scaleToFit;
+
+      // Center the image
+      offsetX = (containerRect.width - canvas.width * scale) / 2;
+      offsetY = (containerRect.height - canvas.height * scale) / 2;
+
+      applyTransform();
+      updateZoomDisplay();
+    }
+
+    function applyTransform() {
+      if (!canvas.width) return;
+
+      // Apply transform to wrapper (this will affect both canvas and overlay)
+      const wrapper = document.getElementById('canvasWrapper');
+      wrapper.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+      wrapper.style.transformOrigin = '0 0';
+    }
+
+    function updateZoomDisplay() {
+      const zoomPercent = Math.round(scale * 100);
+      document.getElementById('zoomLevel').textContent = `${zoomPercent}%`;
+    }
+
+    // ==================== Selection Overlay ====================
+    function showSelectionOverlay() {
+      const overlay = document.getElementById('selectionOverlay');
+      const label = document.getElementById('selectionLabel');
+
+      const top = Math.min(selectionStart.y, selectionEnd.y);
+      const height = Math.abs(selectionEnd.y - selectionStart.y);
+
+      // Since overlay is a child of canvasWrapper which already has transform applied,
+      // we should use canvas coordinates directly, not screen coordinates
+      overlay.style.display = 'block';
+      overlay.style.left = '0px';
+      overlay.style.top = top + 'px';
+      overlay.style.width = canvas.width + 'px';
+      overlay.style.height = height + 'px';
+
+      // Show label
+      label.style.display = 'block';
+      label.style.left = '10px';
+      label.style.top = (top + 10) + 'px';
+      label.textContent = `删除区域高度: ${Math.round(height)}px`;
+    }
+
+    function hideSelectionOverlay() {
+      document.getElementById('selectionOverlay').style.display = 'none';
+      document.getElementById('selectionLabel').style.display = 'none';
+    }
+
+    function clearSelection() {
+      hasSelection = false;
+      isSelecting = false;
+      hideSelectionOverlay();
+      document.getElementById('stitchBtn').disabled = true;
+      updateImageInfo();
+    }
+
+    // ==================== Image Processing ====================
+    function removeAndStitch() {
+      if (!hasSelection || !canvas.width) return;
+
+      // Save current state to history
+      saveToHistory();
+
+      const topY = Math.min(selectionStart.y, selectionEnd.y);
+      const bottomY = Math.max(selectionStart.y, selectionEnd.y);
+      const gapHeight = bottomY - topY;
+      const imageWidth = canvas.width;
+      const imageHeight = canvas.height;
+
+      // Calculate new dimensions
+      const newHeight = imageHeight - gapHeight;
+      const topSectionHeight = topY;
+      const bottomSectionHeight = imageHeight - bottomY;
+
+      // Create temporary canvas
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = imageWidth;
+      tempCanvas.height = newHeight;
+
+      // Draw top section
+      if (topSectionHeight > 0) {
+        tempCtx.drawImage(
+          canvas,
+          0, 0, imageWidth, topY,  // Source
+          0, 0, imageWidth, topY   // Destination
+        );
+      }
+
+      // Draw bottom section
+      if (bottomSectionHeight > 0) {
+        tempCtx.drawImage(
+          canvas,
+          0, bottomY, imageWidth, bottomSectionHeight,  // Source
+          0, topY, imageWidth, bottomSectionHeight       // Destination
+        );
+      }
+
+      // Update main canvas
+      canvas.width = imageWidth;
+      canvas.height = newHeight;
+      ctx.drawImage(tempCanvas, 0, 0);
+
+      // Clear selection
+      clearSelection();
+
+      // Update UI
+      updateImageInfo();
+      updateStatus('图片已处理');
+
+      if (typeof utools !== 'undefined') {
+        utools.showNotification(`已删除 ${Math.round(gapHeight)}px 高度的区域`);
+      }
+    }
+
+    // ==================== History / Undo ====================
+    function saveToHistory() {
+      const dataURL = canvas.toDataURL('image/png');
+      history.push(dataURL);
+
+      // Limit history size
+      if (history.length > MAX_HISTORY) {
+        history.shift();
+      }
+
+      updateUndoButton();
+    }
+
+    function undo() {
+      if (history.length <= 1) return; // Keep at least one state
+
+      history.pop(); // Remove current state
+      const previousState = history[history.length - 1];
+
+      if (previousState) {
+        loadImageFromDataURL(previousState);
+        updateStatus('已撤销');
+      }
+
+      updateUndoButton();
+    }
+
+    function clearHistory() {
+      history = [];
+      updateUndoButton();
+    }
+
+    function updateUndoButton() {
+      document.getElementById('undoBtn').disabled = history.length <= 1;
+    }
+
+    // ==================== Export Functions ====================
+    function saveImage() {
+      if (!canvas.width) {
+        if (typeof utools !== 'undefined') {
+          utools.showNotification('没有可保存的图片');
+        }
+        return;
+      }
+
+      // Show loading notification
+      updateStatus('正在准备保存...');
+
+      // Disable button and show loading state
+      const saveBtn = document.getElementById('saveBtn');
+      const originalText = saveBtn.innerHTML;
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '⏳ 准备中...';
+
+      const dataURL = canvas.toDataURL('image/png');
+
+      if (typeof window.saveImageToFile === 'function') {
+        console.log('Calling saveImageToFile from preload');
+        const result = window.saveImageToFile(dataURL);
+        console.log('Save result:', result);
+
+        if (result && result.success) {
+          updateStatus(`已保存: ${result.filename}`);
+          // Show success state
+          saveBtn.innerHTML = '✅ 保存成功！';
+          saveBtn.classList.remove('btn-success');
+          saveBtn.classList.add('btn-success');
+
+          // Reset button after 2 seconds
+          setTimeout(() => {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+          }, 2000);
+        } else if (result && result.cancelled) {
+          updateStatus('已取消保存');
+          // Reset button immediately
+          saveBtn.innerHTML = originalText;
+          saveBtn.disabled = false;
+        } else {
+          updateStatus('保存失败');
+          // Show error state
+          saveBtn.innerHTML = '❌ 保存失败';
+          saveBtn.classList.remove('btn-success');
+          saveBtn.classList.add('btn-danger');
+
+          // Reset button after 2 seconds
+          setTimeout(() => {
+            saveBtn.innerHTML = originalText;
+            saveBtn.classList.remove('btn-danger');
+            saveBtn.classList.add('btn-success');
+            saveBtn.disabled = false;
+          }, 2000);
+        }
+      } else {
+        console.error('saveImageToFile function not available');
+        if (typeof utools !== 'undefined') {
+          utools.showNotification('保存功能不可用，请检查 preload.js');
+        }
+        updateStatus('保存功能不可用');
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+      }
+    }
+
+    function copyToClipboard() {
+      if (!canvas.width) {
+        if (typeof utools !== 'undefined') {
+          utools.showNotification('没有可复制的图片');
+        }
+        return;
+      }
+
+      updateStatus('正在复制到剪贴板...');
+
+      // Disable button and show loading state
+      const copyBtn = document.getElementById('copyBtn');
+      const originalText = copyBtn.innerHTML;
+      copyBtn.disabled = true;
+      copyBtn.innerHTML = '⏳ 复制中...';
+
+      const dataURL = canvas.toDataURL('image/png');
+      if (typeof window.copyImageToClipboard === 'function') {
+        const success = window.copyImageToClipboard(dataURL);
+
+        if (success) {
+          updateStatus('已复制到剪贴板');
+          // Show success state
+          copyBtn.innerHTML = '✅ 复制成功！';
+          copyBtn.classList.remove('btn-primary');
+          copyBtn.classList.add('btn-success');
+
+          // Reset button after 2 seconds
+          setTimeout(() => {
+            copyBtn.innerHTML = originalText;
+            copyBtn.classList.remove('btn-success');
+            copyBtn.classList.add('btn-primary');
+            copyBtn.disabled = false;
+          }, 2000);
+        } else {
+          updateStatus('复制失败');
+          // Show error state
+          copyBtn.innerHTML = '❌ 复制失败';
+          copyBtn.classList.remove('btn-primary');
+          copyBtn.classList.add('btn-danger');
+
+          // Reset button after 2 seconds
+          setTimeout(() => {
+            copyBtn.innerHTML = originalText;
+            copyBtn.classList.remove('btn-danger');
+            copyBtn.classList.add('btn-primary');
+            copyBtn.disabled = false;
+          }, 2000);
+        }
+      } else {
+        console.error('Copy function not available');
+        if (typeof utools !== 'undefined') {
+          utools.showNotification('复制功能不可用');
+        }
+        updateStatus('复制功能不可用');
+        copyBtn.innerHTML = originalText;
+        copyBtn.disabled = false;
+      }
+    }
+
+    function resetImage() {
+      if (!originalImage) return;
+
+      if (history.length > 0) {
+        const originalState = history[0];
+        loadImageFromDataURL(originalState);
+        updateStatus('已重置到原始图片');
+      }
+    }
+
+    // ==================== Load Image Functions ====================
+    function handleOpenImage() {
+      console.log('Opening image file...');
+      updateStatus('正在打开文件...');
+
+      if (typeof window.openImageFile === 'function') {
+        const dataURL = window.openImageFile();
+
+        if (dataURL) {
+          loadImageFromDataURL(dataURL);
+          updateStatus('图片已加载');
+        } else {
+          updateStatus('未选择图片');
+        }
+      } else {
+        console.error('openImageFile function not available in preload');
+        if (typeof utools !== 'undefined') {
+          utools.showNotification('打开文件功能不可用');
+        }
+        updateStatus('打开文件功能不可用');
+      }
+    }
+
+    function handlePasteImage() {
+      console.log('Pasting from clipboard...');
+      updateStatus('正在从剪贴板粘贴...');
+
+      if (typeof window.getClipboardImage === 'function') {
+        const dataURL = window.getClipboardImage();
+
+        if (dataURL) {
+          loadImageFromDataURL(dataURL);
+          updateStatus('图片已粘贴');
+          if (typeof utools !== 'undefined') {
+            utools.showNotification('✅ 已从剪贴板粘贴图片');
+          }
+        } else {
+          updateStatus('剪贴板中没有图片');
+          if (typeof utools !== 'undefined') {
+            utools.showNotification('剪贴板中没有图片');
+          }
+        }
+      } else {
+        console.error('getClipboardImage function not available in preload');
+        if (typeof utools !== 'undefined') {
+          utools.showNotification('粘贴功能不可用');
+        }
+        updateStatus('粘贴功能不可用');
+      }
+    }
+
+    // ==================== UI Updates ====================
+    function updateImageInfo() {
+      const dimensions = canvas.width ? `${canvas.width} × ${canvas.height}` : '-';
+      document.getElementById('imageDimensions').textContent = dimensions;
+
+      if (hasSelection) {
+        const height = Math.abs(selectionEnd.y - selectionStart.y);
+        const resultHeight = canvas.height - height;
+        document.getElementById('selectionHeight').textContent = Math.round(height) + 'px';
+        document.getElementById('resultHeight').textContent = Math.round(resultHeight) + 'px';
+      } else {
+        document.getElementById('selectionHeight').textContent = '-';
+        document.getElementById('resultHeight').textContent = canvas.height ? canvas.height + 'px' : '-';
+      }
+    }
+
+    function updateStatus(text) {
+      document.getElementById('statusInfo').textContent = text;
+    }
+
+    function enableButtons() {
+      document.getElementById('saveBtn').disabled = false;
+      document.getElementById('copyBtn').disabled = false;
+      document.getElementById('resetBtn').disabled = false;
+    }
+
+    // ==================== Keyboard Shortcuts ====================
+    function handleKeyboard(e) {
+      // Ctrl+O: Open image file
+      if (e.ctrlKey && e.key === 'o') {
+        e.preventDefault();
+        handleOpenImage();
+      }
+
+      // Ctrl+V: Paste from clipboard
+      if (e.ctrlKey && e.key === 'v') {
+        e.preventDefault();
+        handlePasteImage();
+      }
+
+      // Ctrl+Z: Undo
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        undo();
+      }
+
+      // Ctrl+S: Save
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        saveImage();
+      }
+
+      // Ctrl+C: Copy
+      if (e.ctrlKey && e.key === 'c') {
+        e.preventDefault();
+        copyToClipboard();
+      }
+
+      // R: Reset view
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        resetView();
+      }
+
+      // Delete: Remove selection
+      if (e.key === 'Delete' && hasSelection) {
+        e.preventDefault();
+        removeAndStitch();
+      }
+
+      // Escape: Clear selection
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        clearSelection();
+      }
+    }
+  </script>
+</body>
+</html>

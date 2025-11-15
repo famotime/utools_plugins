@@ -61,6 +61,42 @@
 - 插件需要管理员权限才能修改鼠标设置
 - 仅支持 Windows 系统
 
+### 3. 弥隙缩图 (Seamless Crop)
+
+**功能简介**: 图片编辑工具，可以删除图片中的横向内容区域，自动拼接上下部分，实现无缝裁剪效果。常用于快速裁剪聊天长图中无关紧要部分。
+
+![seamless_crop1](D:\MyCodingProjects\utools_plugins\image\seamless_crop1.png)
+
+![seamless_crop2](D:\MyCodingProjects\utools_plugins\image\seamless_crop2.png)
+
+**功能特点**:
+- 支持鼠标拖拽选择要删除的横向区域
+- 自动识别并删除选中区域
+- 智能拼接上下部分，保持图片连续性
+- 支持实时预览编辑效果
+- 可导出处理后的图片
+
+**使用场景**:
+- 需要从长图中删除中间不需要的部分（如聊天记录中的某条消息）
+- 去除图片中的水印或不需要的横向内容
+- 快速编辑截图，删除多余内容
+
+**使用方法**:
+1. 在 uTools 中通过以下任一关键词唤起插件：
+   - `弥隙缩图`
+   - `缩图`
+   - `seamless`
+   - `crop`
+   - `myst`
+   - `st`
+2. 或者直接拖拽图片到 uTools 输入框，选择"弥隙缩图"功能
+3. 在图片上拖拽选择要删除的横向区域
+4. 点击处理按钮，插件会自动删除选中区域并拼接上下部分
+5. 预览效果后，可保存处理后的图片
+
+
+---
+
 ## 🚀 安装方法
 
 ### 方法一：通过 uTools 插件市场安装
@@ -88,6 +124,11 @@ utools_plugins/
 │   ├── preload.js          # 预加载脚本
 │   ├── plugin.json         # 插件配置
 │   ├── README.md           # 插件说明
+│   └── logo.png            # 插件图标
+├── seamless_crop/          # 弥隙缩图插件
+│   ├── index.html          # 插件界面
+│   ├── preload.js          # 预加载脚本
+│   ├── plugin.json         # 插件配置
 │   └── logo.png            # 插件图标
 └── uTools 开发者文档/      # 开发文档
     ├── 插件应用目录结构 _ uTools 开发者文档.md
